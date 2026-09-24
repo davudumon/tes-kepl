@@ -1,40 +1,73 @@
-name: CI/CD Pipeline
+name: Laravel CI/CD
 
 on:
   push:
-    branches: [ main, dev ]
   pull_request:
-    branches: [ main, dev ]
+
+permissions:
+  contents: read
 
 jobs:
-  check-php:
-    name: PHP Syntax Check
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout source
         uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: PHP version check
-        run: php --version
-
-      - name: Check PHP syntax
-        run: php -l app/Models/User.php || echo "PHP check passed"
-
-      - name: List PHP files
-        run: find app -type f -name "*.php" | head -10
-
-  check-node:
-    name: Node/Frontend Check
+  test:
+    name: Test
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout source
         uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+      - name: Run Laravel test suite
+        run: php artisan test
 
-      - name: Node version check
-        run: node --version && npm --version
+  staging:
+    name: Staging
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate staging deployment
+        run: echo "Staging deployment simulation completed; no server deployment is performed."
 
-      - name: Verify package.json
-        run: ls -la package.json && echo "✓ package.json found"
-
-      - name: Show npm info
-        run: npm info . 2>/dev/null | head -5 || echo "✓ npm check complete"
+  production:
+    name: Production
+    needs: staging
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Step 1 - enter application directory
+        run: echo "1. cd /var/www/evolusi-pl-540567"
+      - name: Step 2 - enable maintenance mode
+        run: echo "2. php artisan down"
+      - name: Step 3 - update source code
+        run: echo "3. git pull origin main"
+      - name: Step 4 - install optimized dependencies
+        run: echo "4. composer install --no-dev --optimize-autoloader --no-interaction"
+      - name: Step 5 - run migrations
+        run: echo "5. php artisan migrate --force"
+      - name: Step 6 - optimize application cache
+        run: echo "6. php artisan optimize"
+      - name: Step 7 - restore application service
+        run: echo "7. php artisan up"
