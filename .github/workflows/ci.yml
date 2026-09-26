@@ -118,14 +118,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: "[1/7] Pull latest code"
-        run: echo "[1/7] Pulling latest code from repository..."
+      - name: "[1/7] Maintenance mode + pull latest code"
+        run: |
+          echo "[1/7] Kunci pintu (maintenance mode) lalu tarik kode terbaru..."
+          echo "  - php artisan down --retry=60"
+          echo "  - git pull origin main"
 
       - name: "[2/7] Install dependencies"
         run: echo "[2/7] Installing/updating dependencies (composer install --no-dev)..."
 
       - name: "[3/7] Run database migrations"
-        run: echo "[3/7] Running database migrations..."
+        run: echo "[3/7] Running database migrations (php artisan migrate --force)..."
 
       - name: "[4/7] Cache configuration, routes, and views"
         run: |
@@ -138,11 +141,11 @@ jobs:
         run: echo "[5/7] Installing and building frontend assets (npm ci && npm run build)..."
 
       - name: "[6/7] Restart queue workers"
-        run: echo "[6/7] Restarting queue workers..."
+        run: echo "[6/7] Restarting queue workers (php artisan queue:restart)..."
 
-      - name: "[7/7] Reload web server"
+      - name: "[7/7] Open the door back up"
         run: |
-          echo "[7/7] Reloading web server..."
+          echo "[7/7] Buka pintu kembali (php artisan up)..."
           echo ""
           echo "============================================"
           echo "  PRODUCTION DEPLOY SELESAI"

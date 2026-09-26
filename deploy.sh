@@ -6,7 +6,8 @@ set -e
 
 echo "===== DEPLOY PRODUCTION ====="
 
-echo "[1/7] Pulling latest code from repository..."
+echo "[1/7] Maintenance mode + pulling latest code from repository..."
+# php artisan down --retry=60
 # git pull origin main
 
 echo "[2/7] Installing/updating dependencies (composer install --no-dev)..."
@@ -26,7 +27,7 @@ echo "[5/7] Installing and building frontend assets..."
 echo "[6/7] Restarting queue workers..."
 # php artisan queue:restart
 
-echo "[7/7] Reloading web server..."
-# sudo systemctl reload nginx
+echo "[7/7] Opening the door back up (php artisan up)..."
+# php artisan up
 
 echo "===== DEPLOY SELESAI ====="
