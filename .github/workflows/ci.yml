@@ -53,6 +53,8 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     needs: build
+    env:
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 
     steps:
       - name: Checkout code
@@ -74,7 +76,7 @@ jobs:
       - name: Prepare environment
         run: |
           cp .env.example .env
-          php artisan key:generate
+          php artisan key:generate --force
 
       - name: Run tests (php artisan test)
         run: php artisan test --parallel
