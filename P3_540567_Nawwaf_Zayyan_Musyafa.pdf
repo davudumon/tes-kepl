@@ -1,0 +1,196 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1363 >>
+stream
+BT
+/F1 16 Tf
+50 790 Td
+/F1 16 Tf
+(LAPORAN PRAKTIKUM 3) Tj
+0 -24 Td
+/F1 11 Tf
+(CI/CD Laravel - Empat Tahap) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(Nama : Nawwaf Zayyan Musyafa) Tj
+0 -24 Td
+/F1 11 Tf
+(NIM  : 540567) Tj
+0 -24 Td
+/F1 11 Tf
+(Repository : evolusi-pl-24-540567-SV-24877) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(1. Implementasi aplikasi) Tj
+0 -24 Td
+/F1 11 Tf
+(Repository menggunakan Laravel 12 dan aplikasi CRUD sederhana) Tj
+0 -24 Td
+/F1 11 Tf
+(untuk satu tabel projects. Kolomnya adalah name, description,) Tj
+0 -24 Td
+/F1 11 Tf
+(status, serta timestamps. Route tersedia untuk daftar, formulir,) Tj
+0 -24 Td
+/F1 11 Tf
+(simpan, dan hapus project.) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(Tes feature menggunakan database SQLite in-memory dan RefreshDatabase.) Tj
+0 -24 Td
+/F1 11 Tf
+(Tes memverifikasi penyimpanan project dan endpoint pembuatan project.) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(2. Workflow GitHub Actions) Tj
+0 -24 Td
+/F1 11 Tf
+(Workflow .github/workflows/ci.yml memiliki rantai:) Tj
+0 -24 Td
+/F1 11 Tf
+(build -> test -> staging -> production.) Tj
+0 -24 Td
+/F1 11 Tf
+(Job build memasang dependensi melalui composer install.) Tj
+0 -24 Td
+/F1 11 Tf
+(Job test membutuhkan build dan menjalankan php artisan test.) Tj
+0 -24 Td
+/F1 11 Tf
+(Job staging membutuhkan test dan hanya mencetak echo simulasi.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1892 >>
+stream
+BT
+/F1 16 Tf
+50 790 Td
+/F1 16 Tf
+(3. Production dan deploy) Tj
+0 -24 Td
+/F1 11 Tf
+(Job production membutuhkan staging dan memiliki kondisi:) Tj
+0 -24 Td
+/F1 11 Tf
+(github.ref == 'refs/heads/main' && github.event_name == 'push'.) Tj
+0 -24 Td
+/F1 11 Tf
+(Akibatnya push pada feature/* tetap menjalankan build dan test,) Tj
+0 -24 Td
+/F1 11 Tf
+(sedangkan production berstatus skipped.) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(Job memakai environment production. Required reviewer dikonfigurasi) Tj
+0 -24 Td
+/F1 11 Tf
+(di GitHub: Settings > Environments > production > Required reviewers.) Tj
+0 -24 Td
+/F1 11 Tf
+(Pengaturan tersebut berada di UI GitHub dan bukan di YAML workflow.) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(deploy.sh disimpan dengan set -e. Tujuh langkah yang dicetak pada) Tj
+0 -24 Td
+/F1 11 Tf
+(production \(tanpa menjalankan server\) adalah:) Tj
+0 -24 Td
+/F1 11 Tf
+(1. cd /var/www/evolusi-pl-540567) Tj
+0 -24 Td
+/F1 11 Tf
+(2. php artisan down) Tj
+0 -24 Td
+/F1 11 Tf
+(3. git pull origin main) Tj
+0 -24 Td
+/F1 11 Tf
+(4. composer install --no-dev --optimize-autoloader --no-interaction) Tj
+0 -24 Td
+/F1 11 Tf
+(5. php artisan migrate --force) Tj
+0 -24 Td
+/F1 11 Tf
+(6. php artisan optimize) Tj
+0 -24 Td
+/F1 11 Tf
+(7. php artisan up) Tj
+0 -24 Td
+/F1 11 Tf
+() Tj
+0 -24 Td
+/F1 11 Tf
+(4. Bukti pengujian) Tj
+0 -24 Td
+/F1 11 Tf
+(composer install selesai dan php artisan test menghasilkan:) Tj
+0 -24 Td
+/F1 11 Tf
+(5 passed \(9 assertions\).) Tj
+0 -24 Td
+/F1 11 Tf
+(Skenario gagal juga dilakukan: assertion nama project diubah sementara) Tj
+0 -24 Td
+/F1 11 Tf
+(menjadi CI Pipeline BROKEN. php artisan test --filter=ProjectCrudTest) Tj
+0 -24 Td
+/F1 11 Tf
+(menghasilkan 1 failed, 1 passed. Karena test gagal, needs:test) Tj
+0 -24 Td
+/F1 11 Tf
+(mencegah staging serta production berjalan. Assertion lalu diperbaiki) Tj
+0 -24 Td
+/F1 11 Tf
+(dan seluruh test kembali lulus.) Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000317 00000 n 
+0000001731 00000 n 
+0000001857 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+3800
+%%EOF
