@@ -99,6 +99,16 @@ Run the test suite:
 php artisan test
 ```
 
+## CI/CD Praktikum 3
+
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) menjalankan empat job berurutan: `build → test → staging → production`.
+
+- Setiap push, termasuk `feature/*`, menjalankan build dan test.
+- Staging hanya melakukan `echo` simulasi deployment.
+- Production hanya berjalan untuk event push pada `main`, menggunakan environment GitHub `production`, dan hanya melakukan `echo` tujuh langkah pada `deploy.sh`.
+
+Aktifkan pengaman production di GitHub: **Settings → Environments → production → Required reviewers**, lalu pilih minimal satu reviewer. Pengaturan reviewer ini berada di GitHub, sehingga tidak dapat didefinisikan dalam berkas YAML workflow.
+
 ### Additional Useful Commands
 
 - **Clear caches:**
