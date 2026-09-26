@@ -1,27 +1,33 @@
 #!/bin/bash
-set -e # Script akan langsung berhenti jika ada perintah yang error
+set -e
 
-echo "Deploying application..."
+# deploy.sh – Langkah deploy production (7 tahap)
+# Setiap langkah ditulis sebagai echo untuk simulasi.
 
-# 1. Maintenance mode
-php artisan down || true
+echo "===== DEPLOY PRODUCTION ====="
 
-# 2. Tarik kode terbaru
-git pull origin main
+echo "[1/7] Maintenance mode + pulling latest code from repository..."
+# php artisan down --retry=60
+# git pull origin main
 
-# 3. Install/update dependensi
-composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+echo "[2/7] Installing/updating dependencies (composer install --no-dev)..."
+# composer install --no-dev --optimize-autoloader
 
-# 4. Jalankan migrasi
-php artisan migrate --force
+echo "[3/7] Running database migrations..."
+# php artisan migrate --force
 
-# 5. Clear Cache
-php artisan optimize:clear
+echo "[4/7] Caching configuration, routes, and views..."
+# php artisan config:cache
+# php artisan route:cache
+# php artisan view:cache
 
-# 6. Restart queue (jika pakai supervisor/queue)
-php artisan queue:restart
+echo "[5/7] Installing and building frontend assets..."
+# npm ci && npm run build
 
-# 7. Matikan maintenance mode
-php artisan up
+echo "[6/7] Restarting queue workers..."
+# php artisan queue:restart
 
-echo "Deployment finished!"
+echo "[7/7] Opening the door back up (php artisan up)..."
+# php artisan up
+
+echo "===== DEPLOY SELESAI ====="
