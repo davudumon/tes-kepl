@@ -2,39 +2,157 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev, 'feature/**', 'fitur/**' ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
-  check-php:
-    name: PHP Syntax Check
+  # ──────────────────────────────────────────────
+  # Job 1: Build – pasang dependensi
+  # ──────────────────────────────────────────────
+  build:
+    name: Build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: PHP version check
-        run: php --version
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, json, bcmath, sqlite3
+          coverage: none
 
-      - name: Check PHP syntax
-        run: php -l app/Models/User.php || echo "PHP check passed"
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
 
-      - name: List PHP files
-        run: find app -type f -name "*.php" | head -10
+      - name: Install dependencies (composer install)
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  check-node:
-    name: Node/Frontend Check
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Upload vendor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vendor
+          path: vendor/
+
+  # ──────────────────────────────────────────────
+  # Job 2: Test – jalankan php artisan test
+  # ──────────────────────────────────────────────
+  test:
+    name: Test
     runs-on: ubuntu-latest
+    needs: build
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Node version check
-        run: node --version && npm --version
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, json, bcmath, sqlite3
+          coverage: none
 
-      - name: Verify package.json
-        run: ls -la package.json && echo "✓ package.json found"
+      - name: Download vendor artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vendor
+          path: vendor/
 
-      - name: Show npm info
-        run: npm info . 2>/dev/null | head -5 || echo "✓ npm check complete"
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run tests (php artisan test)
+        run: php artisan test --parallel
+
+  # ──────────────────────────────────────────────
+  # Job 3: Staging – simulasi deploy ke staging
+  # ──────────────────────────────────────────────
+  staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Simulate staging deployment
+        run: |
+          echo "============================================"
+          echo "  DEPLOYING TO STAGING ENVIRONMENT"
+          echo "============================================"
+          echo "Branch   : ${{ github.ref_name }}"
+          echo "Commit   : ${{ github.sha }}"
+          echo "Actor    : ${{ github.actor }}"
+          echo "Time     : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo ">> Staging deployment completed (simulated)"
+          echo "============================================"
+
+  # ──────────────────────────────────────────────
+  # Job 4: Production – deploy ke production
+  #   - Hanya jalan dari branch main
+  #   - Menggunakan environment 'production' (required reviewer)
+  #   - Menjalankan 7 langkah deploy.sh sebagai echo
+  # ──────────────────────────────────────────────
+  production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: staging
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: "[1/7] Pull latest code"
+        run: echo "[1/7] Pulling latest code from repository..."
+
+      - name: "[2/7] Install dependencies"
+        run: echo "[2/7] Installing/updating dependencies (composer install --no-dev)..."
+
+      - name: "[3/7] Run database migrations"
+        run: echo "[3/7] Running database migrations..."
+
+      - name: "[4/7] Cache configuration, routes, and views"
+        run: |
+          echo "[4/7] Caching configuration, routes, and views..."
+          echo "  - php artisan config:cache"
+          echo "  - php artisan route:cache"
+          echo "  - php artisan view:cache"
+
+      - name: "[5/7] Build frontend assets"
+        run: echo "[5/7] Installing and building frontend assets (npm ci && npm run build)..."
+
+      - name: "[6/7] Restart queue workers"
+        run: echo "[6/7] Restarting queue workers..."
+
+      - name: "[7/7] Reload web server"
+        run: |
+          echo "[7/7] Reloading web server..."
+          echo ""
+          echo "============================================"
+          echo "  PRODUCTION DEPLOY SELESAI"
+          echo "============================================"
+          echo "Branch   : ${{ github.ref_name }}"
+          echo "Commit   : ${{ github.sha }}"
+          echo "Actor    : ${{ github.actor }}"
+          echo "Time     : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "============================================"
