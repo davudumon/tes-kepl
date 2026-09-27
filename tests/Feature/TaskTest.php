@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class TaskTest extends TestCase
@@ -17,7 +18,7 @@ class TaskTest extends TestCase
     {
         Task::factory()->count(3)->create();
 
-        $response = $this->getJson('/tasks');
+        $response = $this->getJson('/api/tasks');
 
         $response->assertStatus(200)
                  ->assertJsonCount(3);
@@ -33,7 +34,7 @@ class TaskTest extends TestCase
             'description' => 'Memahami pipeline build-test-staging-production',
         ];
 
-        $response = $this->postJson('/tasks', $payload);
+        $response = $this->postJson('/api/tasks', $payload);
 
         $response->assertStatus(201)
                  ->assertJsonFragment(['title' => 'Belajar CI/CD']);
@@ -48,7 +49,7 @@ class TaskTest extends TestCase
     {
         $task = Task::factory()->create();
 
-        $response = $this->getJson("/tasks/{$task->id}");
+        $response = $this->getJson("/api/tasks/{$task->id}");
 
         $response->assertStatus(200)
                  ->assertJsonFragment(['id' => $task->id]);
@@ -61,7 +62,7 @@ class TaskTest extends TestCase
     {
         $task = Task::factory()->create(['title' => 'Old Title']);
 
-        $response = $this->putJson("/tasks/{$task->id}", [
+        $response = $this->putJson("/api/tasks/{$task->id}", [
             'title' => 'New Title',
             'completed' => true,
         ]);
@@ -83,7 +84,7 @@ class TaskTest extends TestCase
     {
         $task = Task::factory()->create();
 
-        $response = $this->deleteJson("/tasks/{$task->id}");
+        $response = $this->deleteJson("/api/tasks/{$task->id}");
 
         $response->assertStatus(204);
         $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
@@ -94,11 +95,20 @@ class TaskTest extends TestCase
      */
     public function test_create_task_requires_title(): void
     {
-        $response = $this->postJson('/tasks', [
+        $response = $this->postJson('/api/tasks', [
             'description' => 'No title provided',
         ]);
 
         $response->assertStatus(422)
                  ->assertJsonValidationErrors('title');
+    }
+
+    /**
+     * Test: the JSON API is registered under the /api prefix.
+     */
+    public function test_tasks_api_lives_under_api_prefix(): void
+    {
+        $this->assertTrue(Route::has('tasks.index'));
+        $this->assertSame('/api/tasks', route('tasks.index', [], false));
     }
 }

@@ -1,35 +1,40 @@
-name: Laravel CI/CD
+name: CI/CD
 
 on:
   push:
     branches: [ main, dev, 'feature/**', 'fitur/**' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+# Checkout ulang untuk branch sama tidak menumpuk antrean.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '20'
+  FRONTEND_DIR: frontend
 
 jobs:
-  # ──────────────────────────────────────────────
-  # Job 1: Build – pasang dependensi
-  # ──────────────────────────────────────────────
+  # =====================================================================
+  # BACKEND - Laravel
+  # =====================================================================
+
   build:
-    name: Build
+    name: Backend / Build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          tools: composer:v2
-          coverage: none
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
           extensions: mbstring, xml, ctype, json, bcmath, sqlite3
           coverage: none
 
@@ -46,60 +51,190 @@ jobs:
       - name: Prepare environment
         run: cp .env.example .env
 
-      - name: Upload vendor artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vendor
-          path: vendor/
-
-  # ──────────────────────────────────────────────
-  # Job 2: Test – jalankan php artisan test
-  # ──────────────────────────────────────────────
   test:
-    name: Test
+    name: Backend / Test
     runs-on: ubuntu-latest
     needs: build
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          tools: composer:v2
-          coverage: none
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-      - name: Run Laravel test suite
-        run: php artisan test
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
           extensions: mbstring, xml, ctype, json, bcmath, sqlite3
           coverage: none
 
-      - name: Download vendor artifact
-        uses: actions/download-artifact@v4
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
         with:
-          name: vendor
-          path: vendor/
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies (composer install)
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Prepare environment
         run: cp .env.example .env
 
       - name: Run tests (php artisan test)
-        run: php artisan test --parallel
+        run: php artisan test
 
-  # ──────────────────────────────────────────────
-  # Job 3: Staging – simulasi deploy ke staging
-  # ──────────────────────────────────────────────
+  # =====================================================================
+  # FRONTEND - Vue 3 di folder frontend/
+  #
+  #   frontend-lint -> frontend-test -> frontend-build -> frontend-deploy
+  #
+  # Keempat job dirangkai dengan `needs:`. Job 1-3 memakai `npm ci`
+  # dengan cache npm. Job deploy TIDAK menjalankan `npm run build`;
+  # ia hanya mengunduh artefak dist/ dari job frontend-build.
+  # =====================================================================
+
+  # ── FRONTEND JOB 1/4 ──────────────────────────────────────────────
+  frontend-lint:
+    name: Frontend 1/4 / Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Lint (eslint)
+        run: npm run lint
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+  # ── FRONTEND JOB 2/4 ──────────────────────────────────────────────
+  frontend-test:
+    name: Frontend 2/4 / Test
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Unit test (vitest run)
+        run: npm run test
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+  # ── FRONTEND JOB 3/4 ──────────────────────────────────────────────
+  frontend-build:
+    name: Frontend 3/4 / Build
+    runs-on: ubuntu-latest
+    needs: frontend-test
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Build (vite build)
+        run: npm run build
+        working-directory: ${{ env.FRONTEND_DIR }}
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:8000/api' }}
+
+      - name: Hand over dist/ ke job deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIR }}/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  # ── FRONTEND JOB 4/4 ──────────────────────────────────────────────
+  frontend-deploy:
+    name: Frontend 4/4 / Deploy
+    runs-on: ubuntu-latest
+    needs: frontend-build
+    # Deploy hanya jalan dari push ke main. Pada Pull Request job ini skipped.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # Tidak ada setup Node.js, tidak ada npm ci, tidak ada npm run build
+      # pada job ini. dist/ diambil apa adanya dari job frontend-build.
+      - name: Ambil artefak dist/ hasil build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIR }}/dist
+
+      - name: Tampilkan isi dist/ ke log
+        run: |
+          echo "============================================"
+          echo "  ISI DIREKTORI dist/ (dari job frontend-build)"
+          echo "============================================"
+          echo "Commit : ${{ github.sha }}"
+          echo "Waktu  : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo "--- daftar file ---"
+          find ${{ env.FRONTEND_DIR }}/dist -type f | sort
+          echo ""
+          echo "--- ukuran file ---"
+          du -ah ${{ env.FRONTEND_DIR }}/dist | sort -h
+          echo ""
+          echo "--- frontend/dist/index.html ---"
+          cat ${{ env.FRONTEND_DIR }}/dist/index.html
+          echo ""
+          echo "============================================"
+          echo "  Deploy frontend selesai (simulasi)"
+          echo "============================================"
+
+      - name: Salin artefak ke public/frontend
+        run: |
+          mkdir -p public/frontend
+          cp -R ${{ env.FRONTEND_DIR }}/dist/. public/frontend/
+          find public/frontend -type f | sort
+
+  # =====================================================================
+  # DEPLOY LARAVEL - simulasi, tidak menyentuh server
+  # =====================================================================
+
   staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: test
+    needs: [ test, frontend-build ]
 
     steps:
       - name: Checkout code
@@ -111,24 +246,21 @@ jobs:
           echo "  DEPLOYING TO STAGING ENVIRONMENT"
           echo "============================================"
           echo "Branch   : ${{ github.ref_name }}"
+          echo "Event    : ${{ github.event_name }}"
           echo "Commit   : ${{ github.sha }}"
           echo "Actor    : ${{ github.actor }}"
           echo "Time     : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           echo ""
+          echo "Backend tests  : PASS"
+          echo "Frontend build : PASS (artefak frontend-dist)"
           echo ">> Staging deployment completed (simulated)"
           echo "============================================"
 
-  # ──────────────────────────────────────────────
-  # Job 4: Production – deploy ke production
-  #   - Hanya jalan dari branch main
-  #   - Menggunakan environment 'production' (required reviewer)
-  #   - Menjalankan 7 langkah deploy.sh sebagai echo
-  # ──────────────────────────────────────────────
   production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: staging
-    if: github.ref == 'refs/heads/main'
+    needs: [ staging, frontend-deploy ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
 
@@ -155,8 +287,11 @@ jobs:
           echo "  - php artisan route:cache"
           echo "  - php artisan view:cache"
 
-      - name: "[5/7] Build frontend assets"
-        run: echo "[5/7] Installing and building frontend assets (npm ci && npm run build)..."
+      - name: "[5/7] Publish frontend assets"
+        run: |
+          echo "[5/7] Frontend sudah dibangun di job frontend-build."
+          echo "     Artefak dist/ disalin ke public/frontend oleh job frontend-deploy."
+          echo "     Tidak ada npm run build di tahap production."
 
       - name: "[6/7] Restart queue workers"
         run: echo "[6/7] Restarting queue workers (php artisan queue:restart)..."

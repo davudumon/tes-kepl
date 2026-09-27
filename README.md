@@ -15,7 +15,7 @@ Before you begin, ensure you have the following installed on your system:
 
 - **PHP** 8.2 or higher
 - **Composer** (PHP dependency manager)
-- **Node.js** and **npm** (for frontend assets)
+- **Node.js** and **npm** (for frontend assets, and for the Vue app in `frontend/`)
 - **SQLite**, **MySQL**, or **PostgreSQL** (for database)
 - **Git** (for version control)
 
@@ -92,6 +92,15 @@ The application will be available at `http://localhost:8000`
 npm run dev
 ```
 
+**With the Vue 3 app (in another terminal):**
+```bash
+cd frontend
+npm run dev
+```
+
+The Vue app will be available at `http://localhost:5173` and will call the
+Laravel API at the address given by `VITE_API_URL`.
+
 ### Testing
 
 Run the test suite:
@@ -99,15 +108,83 @@ Run the test suite:
 php artisan test
 ```
 
-## CI/CD Praktikum 3
+## API JSON untuk Frontend
 
-Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) menjalankan empat job berurutan: `build → test → staging → production`.
+Route JSON untuk tabel CRUD `tasks` berada di `routes/api.php` dan memakai
+middleware group `api` (stateless):
 
-- Setiap push, termasuk `feature/*`, menjalankan build dan test.
+```
+GET    /api/health
+GET    /api/tasks
+POST   /api/tasks
+GET    /api/tasks/{task}
+PUT    /api/tasks/{task}
+DELETE /api/tasks/{task}
+```
+
+`config/cors.php` mengizinkan origin Vue di laptop. Daftar origin dibaca dari
+`.env`:
+
+```dotenv
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+## Frontend Vue 3
+
+Aplikasi Vue 3 dengan Vue Router berada di folder [`frontend/`](frontend/).
+Alamat API dibaca dari environment variable `VITE_API_URL`, bukan ditulis
+langsung di kode.
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev      # http://localhost:5173
+```
+
+Jalankan `php artisan serve` di terminal lain supaya `GET /api/tasks` bisa
+dijangkau. Ringkasan perintahnya ada di [`frontend/README.md`](frontend/README.md).
+
+## Testing Frontend
+
+```bash
+cd frontend
+npm run lint     # ESLint
+npm run test     # Vitest, tanpa perlu Laravel berjalan
+npm run build    # menghasilkan frontend/dist/
+```
+
+## CI/CD
+
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) memuat dua
+rantai.
+
+**Backend** — `build → test → staging → production`.
+
+**Frontend** — empat job berurutan yang dirangkai dengan `needs:`:
+
+```
+frontend-lint → frontend-test → frontend-build → frontend-deploy
+  npm ci          npm ci          npm ci          (tanpa npm)
+ eslint .      vitest run     vite build        download-artifact
+```
+
+- Tiga job pertama memakai `actions/setup-node@v4` dengan `cache: 'npm'`,
+  lalu `npm ci`.
+- `frontend-build` menyerahkan `frontend/dist` lewat `actions/upload-artifact@v4`.
+- `frontend-deploy` **tidak** menjalankan `npm run build`; ia mengunduh
+  artefak tersebut dan mencetak isi `dist/` ke log.
+- `frontend-deploy` dan `production` memakai kondisi
+  `github.event_name == 'push' && github.ref == 'refs/heads/main'`, sehingga
+  pada Pull Request keduanya **skipped** sementara `lint`, `test`, dan
+  `build` tetap berjalan.
 - Staging hanya melakukan `echo` simulasi deployment.
-- Production hanya berjalan untuk event push pada `main`, menggunakan environment GitHub `production`, dan hanya melakukan `echo` tujuh langkah pada `deploy.sh`.
+- Production memakai environment GitHub `production` dengan tujuh langkah
+  `echo` dari `deploy.sh`.
 
 Aktifkan pengaman production di GitHub: **Settings → Environments → production → Required reviewers**, lalu pilih minimal satu reviewer. Pengaturan reviewer ini berada di GitHub, sehingga tidak dapat didefinisikan dalam berkas YAML workflow.
+
+Bukti pengujian: [`docs/VALIDASI_FRONTEND_CI.md`](docs/VALIDASI_FRONTEND_CI.md) dan [`docs/VALIDASI_P3.md`](docs/VALIDASI_P3.md).
 
 ### Additional Useful Commands
 
