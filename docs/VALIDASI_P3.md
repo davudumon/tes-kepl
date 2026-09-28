@@ -1,10 +1,14 @@
 # Validasi Praktikum 3 — NIM 540567
 
+> Endpoint JSON `/api/tasks`, aplikasi Vue 3 di `frontend/`, dan rantai
+> `lint → test → build → deploy` dijelaskan di
+> [`VALIDASI_FRONTEND_CI.md`](VALIDASI_FRONTEND_CI.md).
+
 ## Rantai pipeline
 
 `build → test → staging → production`
 
-Job `test` membutuhkan `build`; `staging` membutuhkan `test`; dan `production` membutuhkan `staging`. Semua push, termasuk `feature/*`, memicu workflow. Production menggunakan kondisi `github.ref == 'refs/heads/main' && github.event_name == 'push'`, sehingga pada push branch fitur job tersebut berstatus **skipped**.
+Job `test` membutuhkan `build`; `staging` membutuhkan `test`; dan `production` membutuhkan `staging`. Semua push, termasuk `feature/*`, memicu workflow. Production menggunakan kondisi `github.event_name == 'push' && github.ref == 'refs/heads/main'`, sehingga pada push branch fitur maupun pada Pull Request job tersebut berstatus **skipped**.
 
 ## Pengamanan production
 
