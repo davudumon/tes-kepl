@@ -2,7 +2,8 @@
 
 Dokumen ini adalah bukti pengujian dari implementasi. Rincian praktikum 3
 (pipeline Laravel `build → test → staging → production`) tetap ada di
-[`VALIDASI_P3.md`](VALIDASI_P3.md).
+[`VALIDASI_P3.md`](VALIDASI_P3.md). Ringkasan siap menjadi laporan ada di
+[`LAPORAN_P4.md`](LAPORAN_P4.md).
 
 ## 1. Endpoint JSON dari tabel CRUD
 

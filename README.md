@@ -184,7 +184,7 @@ frontend-lint → frontend-test → frontend-build → frontend-deploy
 
 Aktifkan pengaman production di GitHub: **Settings → Environments → production → Required reviewers**, lalu pilih minimal satu reviewer. Pengaturan reviewer ini berada di GitHub, sehingga tidak dapat didefinisikan dalam berkas YAML workflow.
 
-Bukti pengujian: [`docs/VALIDASI_FRONTEND_CI.md`](docs/VALIDASI_FRONTEND_CI.md) dan [`docs/VALIDASI_P3.md`](docs/VALIDASI_P3.md).
+Bukti pengujian: [`docs/VALIDASI_FRONTEND_CI.md`](docs/VALIDASI_FRONTEND_CI.md) dan [`docs/VALIDASI_P3.md`](docs/VALIDASI_P3.md). Ringkasan siap dijadikan laporan: [`docs/LAPORAN_P4.md`](docs/LAPORAN_P4.md).
 
 ### Additional Useful Commands
 

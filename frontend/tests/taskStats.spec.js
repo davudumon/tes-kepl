@@ -19,7 +19,7 @@ describe('summarizeTasks', () => {
   })
 
   it('mengembalikan persen 0 untuk daftar kosong', () => {
-    expect(summarizeTasks([])).toEqual({ total: 99, selesai: 0, belum: 0, persen: 0 })
+    expect(summarizeTasks([])).toEqual({ total: 0, selesai: 0, belum: 0, persen: 0 })
   })
 
   it('mengembalikan persen 100 saat semua tugas selesai', () => {
