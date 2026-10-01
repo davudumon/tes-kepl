@@ -4,7 +4,7 @@ use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 // Landing Page Route
-Route::get('/', function () {
+Route::get('/landing', function () {
     return view('landing');
 });
 
